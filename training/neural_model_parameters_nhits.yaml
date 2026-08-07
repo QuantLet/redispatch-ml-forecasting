@@ -1,0 +1,56 @@
+# ── Directories ────────────────────────────────────────────────────────────
+output_dir: "/home/jovyan/redispatch-ml-forecasting/outputs_nhits_only_seed860"
+
+# ── Forecast ───────────────────────────────────────────────────────────────
+forecast_horizon: 24
+input_size: 24
+
+# ── Target shift ───────────────────────────────────────────────────────────
+shift_hours: 6
+
+# ── Date range ─────────────────────────────────────────────────────────────
+train_start: "2021-10-01"
+valid_start: "2024-11-01"
+test_start:  "2025-01-01"
+
+# ── Wandb ──────────────────────────────────────────────────────────────────
+wandb_project: "redispatch-forecasting-proper"
+persist_checkpoints: true
+checkpoint_compression: 21
+checkpoint_compression_n_threads: 30
+
+# ── Training hyper-parameters ──────────────────────────────────────────────
+max_steps:           5000
+val_check_steps:       50
+early_stop_patience:   20
+batch_size:            16
+windows_batch_size:    64
+learning_rate:       1.0e-4
+random_seed:          778
+local_scaler_type:    "standard"
+
+# ── Rolling-window settings ────────────────────────────────────────────────
+n_train_months: 37
+n_valid_months:  2
+n_test_months:   1
+
+# ── Models to train ────────────────────────────────────────────────────────
+models:
+  - nhits
+
+nhits:
+  n_blocks: [1, 1, 1]
+
+# ── Per-TSO overrides ──────────────────────────────────────────────────────
+# TSO is read from the dataset's companion JSON metadata (the "operator" field).
+# Both "TenneT DE" (with space) and "TenneT_DE" (underscore) are accepted.
+#
+# Precedence: CLI flag > TSO override > global value above > hardcoded default.
+# Flat keys (input_size, shift_hours, models, …) replace the global value.
+# Model sections are deep-merged with the global section: only specified keys
+# are overridden, the rest are inherited from the global model section above.
+
+tso_overrides:
+  TransnetBW:
+    nhits:
+      n_blocks: [20, 15, 10]

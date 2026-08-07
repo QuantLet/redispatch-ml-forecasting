@@ -1,0 +1,11 @@
+python3 -m dataset_preparation.generate_datasets \
+    --combinations-path "dataset_preparation/combinations_paper.json" \
+    --n-workers 1 \
+    --output-dir "data/model_data_paper_actuals_1h_lag" \
+    --redispatch-data-path "/home/jovyan/redispatch-ml-forecasting/data/redispatch_data_utc_23_feb_2026.csv" \
+    --translations-path "/home/jovyan/redispatch-ml-forecasting/data_processing/translations.json" \
+    --timezone "UTC" \
+    --measurement-reasons "domestic_redispatch" \
+    --start-date "2021-10-01 00:00:00" \
+    --end-date "2026-02-21 00:00:00" \
+    --oos-start-date "2025-03-01"

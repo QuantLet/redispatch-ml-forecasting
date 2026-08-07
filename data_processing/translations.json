@@ -1,0 +1,51 @@
+{
+    "column_names": 
+    {
+        "BEGINN_DATUM": "begin_date",	
+        "BEGINN_UHRZEIT": "begin_time",		
+        "ENDE_DATUM": "end_date",		
+        "ENDE_UHRZEIT": "end_time",		
+        "NETZREGION": "region",		
+        "GRUND_DER_MASSNAHME": "measurement_reason",	
+        "RICHTUNG": "direction",		
+        "MITTLERE_LEISTUNG_MW": "mean_load",		
+        "MAXIMALE_LEISTUNG_MW": "max_load",		
+        "GESAMTE_ARBEIT_MWH": "total_load",		
+        "ANWEISENDER_UENB": "directing_operator",		
+        "ANFORDERNDER_UENB": "requesting_operator",		
+        "BETROFFENE_ANLAGE": "affected_unit",
+        "PRIMAERENERGIEART": "primary_energy_type"
+    },
+    "column_values":
+    {
+        "GRUND_DER_MASSNAHME": 
+        {
+            "Strombedingter Redispatch": "Electricty-related redispatch",
+            "Spannungsbedingter Redispatch": "Voltage-related redispatch",
+            "Gezielter Leistungsausgleich bei Einspeisemanagement": "Target performance compensation for single-spot management",
+            "Strom- und Spannungsbedingter RD": "Electricity- and voltage-related RD",
+            "Strombedingter Countertrade DE-DK1": "Electricity-related countertrade DE-DK1",
+            "Probestart (NetzRes)": "Testrun (NetzRes)",
+            "Funktionstest (KapRes)": "Function test (KapRes)",
+            "Strombedingter Countertrade DE-NO2": "Electricity-related countertrade DE-NO2",
+            "Strombedingter Countertrade DE-DK2": "Electricity-related countertrade DE-DK2",
+            "Testfahrt (KapRes)": "Testrun (KapRes)",
+            "Probeabruf (KapRes)": "Test call (KapRes)",
+            "Testfahrt (bnBm)": "Testrun (bnBm)",
+            "Funktionstest (bnBm)": "Function test (bnBm)",
+            "Probeabruf (bnBm)": "Test call (bnBm)"
+        },
+        "RICHTUNG":
+        {
+            "Wirkleistungseinspeisung reduzieren": "down",
+            "Wirkleistungseinspeisung erhöhen": "up",
+            "Wirkleistungseinspeisung erh¿hen": "up"
+        },
+        "PRIMAERENERGIEART":
+        {
+            "Erneuerbar": "Renewable",
+            "Konventionell": "Conventional",
+            "Sonstiges": "Special"
+        }
+    }
+}

@@ -1,0 +1,30 @@
+{
+  "feature_sets": [
+    "basic"
+  ],
+  "operator": "50Hertz",
+  "directions": [
+    "up",
+    "down"
+  ],
+  "rows": 76992,
+  "columns": [
+    "begin_date",
+    "total_load",
+    "direction",
+    "operator"
+  ],
+  "n_columns": 4,
+  "validation": {
+    "core_nulls": 0,
+    "duplicates": 0,
+    "missing_dates": 0
+  },
+  "merge_log": [],
+  "rolling_window_days": 7,
+  "creation_timestamp": "2026-04-10T06:14:17.398557",
+  "date_range": {
+    "start": "2021-10-01 00:00:00",
+    "end": "2026-02-20 23:00:00"
+  }
+}

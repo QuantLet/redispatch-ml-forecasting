@@ -1,0 +1,11 @@
+python3 -m paper_results_cli \
+    --predictions-dir outputs_paper \
+    --shift-dir outputs_shifted_targets_17_paper \
+    --interpretability-ig-root outputs_nhits_only_seed860_paper \
+    --interpretability-dataset-root data/model_data_paper \
+    --dataset-root-dir-path data/model_data_paper \
+    --dataset-name basic_day_ahead_price_wind_pv_production_consumption_sce \
+    --interpretability-model-filter nhits \
+    --best-checkpoint \
+    --ablation \
+    --models "lstm" "lightgbm_regression_rolling" "nhits" "nbeatsx" "tft"

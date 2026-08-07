@@ -1,0 +1,19 @@
+\begin{table}
+\caption{Volume-weighted MAE, average F-beta, and $R^2$ per model, grouped by dense/sparse class using a sparsity threshold of 0.70. Best value(s) per row are bolded.}
+\begin{tabular}{lllllll}
+\toprule
+Metric & \multicolumn{2}{r}{MAE} & \multicolumn{2}{r}{F$_{\beta=2}$} & \multicolumn{2}{r}{$R^2$} \\
+Sparsity & Dense & Sparse & Dense & Sparse & Dense & Sparse \\
+\midrule
+LightGBM & 375.545 & 60.071 & 0.827 & 0.219 & 0.06 & -0.06 \\
+ARIMA & 360.890 & 70.862 & 0.813 & \textbf{0.581} & 0.22 & \textbf{0.32} \\
+Ridge & 440.734 & 79.097 & 0.808 & 0.529 & 0.07 & 0.06 \\
+Naive & 489.234 & 87.905 & 0.680 & 0.417 & -0.41 & -0.37 \\
+Seasonal Ridge & 449.538 & 77.054 & \textbf{0.847} & 0.563 & 0.11 & 0.08 \\
+LSTM & 319.351 & 60.971 & 0.836 & 0.470 & 0.26 & -0.03 \\
+NBEATSx & \textbf{258.179} & 54.194 & 0.829 & 0.559 & \textbf{0.41} & 0.25 \\
+NHiTS & 263.094 & \textbf{53.555} & 0.830 & 0.555 & 0.39 & 0.26 \\
+TFT & 266.133 & 56.935 & 0.846 & 0.553 & 0.40 & 0.08 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,12 @@
+{
+  "nhits": "#2196F3",
+  "nbeatsx": "#4CAF50",
+  "tft": "#FF9800",
+  "lstm": "#9C27B0",
+  "auto_arima_rolling": "#F44336",
+  "lightgbm_regression_rolling": "#795548",
+  "ridge_regression_rolling": "#607D8B",
+  "naive_rolling": "#9E9E9E",
+  "moving_avg_hourly": "#BDBDBD",
+  "null": "#E0E0E0"
+}

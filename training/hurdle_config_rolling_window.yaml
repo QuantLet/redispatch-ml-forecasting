@@ -1,0 +1,113 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Hurdle model training configuration
+#
+# Pass this file with: python -m training.hurdle_runner --config training/hurdle_config.yaml
+# All values here act as DEFAULTS; explicit CLI flags still override them.
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── Models ────────────────────────────────────────────────────────────────────
+# Accepted values: nhits, nbeatsx, tft  (comma- or space-separated)
+models:
+  - nhits
+  - nbeatsx
+  - tft
+
+# ── Forecast / input window ───────────────────────────────────────────────────
+forecast_horizon: 24
+input_size: 24
+
+# ── Target shifting ───────────────────────────────────────────────────────────
+shift_hours: 6
+
+# ── Wandb ──────────────────────────────────────────────────────────────────
+wandb_project: "redispatch-forecasting-proper"
+persist_checkpoints: true
+checkpoint_compression: 21
+checkpoint_compression_n_threads: 30
+
+# ── Date range (single-window mode) ──────────────────────────────────────────
+train_start: "2021-10-01"
+valid_start: "2024-11-01"
+test_start:  "2025-01-01"
+
+# ── Training ──────────────────────────────────────────────────────────────────
+max_steps:             5000
+val_check_steps:       50
+early_stop_patience:   -1
+batch_size:            16
+windows_batch_size:    64
+learning_rate:         1.0e-4
+random_seed:           778
+local_scaler_type:     standard
+
+# ── Hurdle-specific ───────────────────────────────────────────────────────────
+# Phase boundaries as fractions of max_steps:
+#   Phase 1  [0,          step1*max_steps) → BCE only
+#   Phase 2  [step1, step2*max_steps)      → BCE + magnitude
+#   Phase 3  [step2*max_steps, ∞)          → BCE + magnitude + coupling
+hurdle_schedule_steps:    [0.15, 0.50]
+
+# BCE weight in the final (coupling) phase
+hurdle_lambda_bce_final:  0.1
+
+# Minimum MW threshold; y < eps is treated as redispatch = 0
+hurdle_eps:               0.1
+
+# Quantile of positive training values → Huber loss δ per direction
+hurdle_huber_quantile:    0.85
+
+# Apply z-score scaling to the magnitude head (strongly recommended)
+hurdle_scale_magnitude_head: true
+
+# ── Rolling window ────────────────────────────────────────────────────────────
+# (Only used when --rolling-window is passed)
+n_train_months: 37
+n_valid_months: 2
+n_test_months:  1
+start_window:   2
+
+# ── Output / W&B ─────────────────────────────────────────────────────────────
+output_dir:    outputs_single_window_hurdle
+wandb_project: redispatch-forecasting-proper
+# wandb_entity: your-team-name   # uncomment if needed
+
+# ── Direction ─────────────────────────────────────────────────────────────────
+direction: both
+
+# ── Per-model architecture overrides ─────────────────────────────────────────
+# Nested dicts are merged into the model's default kwargs.
+nhits:
+  input_size:    24
+  n_blocks:      [8, 6, 4]
+  learning_rate: 1.0e-4
+
+nbeatsx:
+  input_size:    24
+  n_blocks:      [10, 5, 2]
+  stack_types:   ["identity", "seasonality", "trend"]
+  learning_rate: 5.0e-5
+
+tft:
+  input_size:  24
+  hidden_size: 64
+  dropout:     0.1
+  n_head:      4
+
+# ── Per-TSO overrides ─────────────────────────────────────────────────────────
+# Any flat key above plus nested model dicts can be overridden per TSO.
+# TSO keys may use spaces or underscores.
+# tso_overrides:
+#   TenneT_DE:
+#     input_size:   24
+#     max_steps:    6000
+#     nhits:
+#       n_blocks:   [24, 18, 12]
+
+#   Amprion:
+#     input_size:   36
+
+#   TransnetBW:
+#     max_steps:    4000
+
+#   50Hertz:
+#     max_steps:    5000

@@ -1,0 +1,4 @@
+[
+    ["basic", "remove_data_driven", "remove_runlength"],
+    ["basic", "day_ahead_price", "wind_pv", "production_consumption", "sce"]
+]

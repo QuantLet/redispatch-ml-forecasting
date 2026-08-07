@@ -1,0 +1,9 @@
+TSO,direction,dominant group,second group,third group,interpretation
+50Hertz,down,target_lags/basic (61%),production_consumption (18%),sce (8%),system-state driven
+50Hertz,up,target_lags/basic (42%),production_consumption (27%),sce (11%),system-state driven
+Amprion,down,target_lags/basic (34%),production_consumption (29%),sce (15%),system-state driven
+Amprion,up,target_lags/basic (47%),production_consumption (24%),sce (10%),system-state driven
+TenneT_DE,down,production_consumption (32%),target_lags/basic (32%),sce (13%),system-state driven
+TenneT_DE,up,target_lags/basic (34%),production_consumption (31%),sce (12%),system-state driven
+TransnetBW,down,production_consumption (30%),target_lags/basic (27%),sce (17%),system-state driven
+TransnetBW,up,production_consumption (31%),target_lags/basic (25%),sce (16%),system-state driven

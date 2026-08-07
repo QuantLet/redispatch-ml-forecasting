@@ -1,0 +1,46 @@
+nbeatsx:
+  n_blocks:
+    - [1, 1, 1]
+    - [5, 2, 1]
+    - [15, 5, 2]
+
+nhits:
+  n_blocks:
+    - [1, 1, 1]
+    - [8, 6, 4]
+    - [20, 15, 10]
+
+tft:
+  hidden_size:
+    - 16
+    - 32
+    - 64
+    - 128
+  dropout:
+    - 0.05
+    - 0.1
+    - 0.15
+    - 0.2
+
+tft_quantile:
+  hidden_size:
+    - 16
+    - 32
+    - 64
+    - 128
+  dropout:
+    - 0.05
+    - 0.1
+    - 0.15
+    - 0.2
+
+lstm:
+  encoder_hidden_size:
+    - 32
+    - 64
+    - 128
+  encoder_dropout:
+    - 0.0
+    - 0.1
+    - 0.2
+

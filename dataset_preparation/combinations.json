@@ -1,0 +1,20 @@
+[
+    ["basic"],
+    ["basic", "day_ahead_price"],
+    ["basic", "wind_pv"],
+    ["basic", "cross_border"],
+    ["basic", "production_consumption"],
+    ["basic", "bloomberg"],
+    ["basic", "day_ahead_price", "wind_pv"],
+    ["basic", "day_ahead_price", "cross_border"],
+    ["basic", "day_ahead_price", "production_consumption"],
+    ["basic", "wind_pv", "cross_border"],
+    ["basic", "wind_pv", "production_consumption"],
+    ["basic", "cross_border", "production_consumption"],
+    ["basic", "day_ahead_price", "wind_pv", "cross_border"],
+    ["basic", "day_ahead_price", "wind_pv", "production_consumption"],
+    ["basic", "day_ahead_price", "cross_border", "production_consumption"],
+    ["basic", "wind_pv", "cross_border", "production_consumption"],
+    ["basic", "day_ahead_price", "wind_pv", "cross_border", "production_consumption"],
+    ["basic", "day_ahead_price", "wind_pv", "cross_border", "production_consumption", "bloomberg"]
+]

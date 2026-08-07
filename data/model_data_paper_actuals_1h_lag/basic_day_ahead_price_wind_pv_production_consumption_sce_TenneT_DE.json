@@ -1,0 +1,115 @@
+{
+  "feature_sets": [
+    "basic",
+    "day_ahead_price",
+    "wind_pv",
+    "production_consumption",
+    "sce"
+  ],
+  "operator": "TenneT DE",
+  "directions": [
+    "up",
+    "down"
+  ],
+  "rows": 76992,
+  "columns": [
+    "begin_date",
+    "total_load",
+    "direction",
+    "operator",
+    "runlength_indicator",
+    "runlength_zero",
+    "runlength_switches",
+    "data_driven_total_active_duration",
+    "data_driven_n_interventions",
+    "data_driven_max_load_weighted_proxy",
+    "day_ahead_price_de_lu",
+    "day_ahead_price_spread_de_vs_dk_2",
+    "day_ahead_price_spread_de_vs_nl",
+    "day_ahead_price_spread_de_vs_dk_1",
+    "pv_forecast_de_tennet",
+    "wind_forecast_total_de_tennet",
+    "wind_actual_total_rollingmean_7d_de_tennet",
+    "wind_actual_total_lag_1h_de_tennet",
+    "pv_actual_rollingmean_7d_de_tennet",
+    "pv_actual_lag_1h_de_tennet",
+    "production_forecast_dk_1",
+    "production_wind_total_de_tennet_rollingmean_7d",
+    "production_wind_total_de_tennet_lag_1h",
+    "production_solar_de_tennet_rollingmean_7d",
+    "production_solar_de_tennet_lag_1h",
+    "production_hydro_ror_de_tennet_rollingmean_7d",
+    "production_hydro_ror_de_tennet_lag_1h",
+    "production_pumped_storage_de_tennet_rollingmean_7d",
+    "production_pumped_storage_de_tennet_lag_1h",
+    "production_thermal_coal_de_tennet_rollingmean_7d",
+    "production_thermal_coal_de_tennet_lag_1h",
+    "production_thermal_gas_de_tennet_rollingmean_7d",
+    "production_thermal_gas_de_tennet_lag_1h",
+    "production_thermal_nuclear_de_tennet_rollingmean_7d",
+    "production_thermal_nuclear_de_tennet_lag_1h",
+    "production_thermal_other_de_tennet_rollingmean_7d",
+    "production_thermal_other_de_tennet_lag_1h",
+    "production_bio_other_renewables_de_tennet_rollingmean_7d",
+    "production_bio_other_renewables_de_tennet_lag_1h",
+    "consumption_forecast_load_de_tennet",
+    "consumption_forecast_load_dk_1",
+    "consumption_load_actual_rollingmean_7d_de_tennet",
+    "consumption_load_actual_lag_1h_de_tennet",
+    "consumption_load_actual_rollingmean_7d_dk_1",
+    "consumption_load_actual_lag_1h_dk_1",
+    "sce_forecast_net_flow_at",
+    "sce_forecast_net_flow_be",
+    "sce_forecast_net_flow_ch",
+    "sce_forecast_net_flow_cz",
+    "sce_forecast_net_flow_dk_1",
+    "sce_forecast_net_flow_dk_2",
+    "sce_forecast_net_flow_fr",
+    "sce_forecast_net_flow_nl",
+    "sce_forecast_net_flow_pl",
+    "production_forecast_other_de_tennet",
+    "residual_load_forecast_de_tennet"
+  ],
+  "n_columns": 56,
+  "validation": {
+    "core_nulls": 0,
+    "duplicates": 0,
+    "missing_dates": 0
+  },
+  "merge_log": [
+    {
+      "feature_set": "day_ahead_price",
+      "rows_before": 76992,
+      "rows_after": 76992,
+      "new_columns": 4,
+      "null_pct": 0.0
+    },
+    {
+      "feature_set": "wind_pv",
+      "rows_before": 76992,
+      "rows_after": 76992,
+      "new_columns": 6,
+      "null_pct": 0.0
+    },
+    {
+      "feature_set": "production_consumption",
+      "rows_before": 76992,
+      "rows_after": 76992,
+      "new_columns": 26,
+      "null_pct": 0.0
+    },
+    {
+      "feature_set": "sce",
+      "rows_before": 76992,
+      "rows_after": 76992,
+      "new_columns": 9,
+      "null_pct": 0.0
+    }
+  ],
+  "rolling_window_days": 7,
+  "creation_timestamp": "2026-04-10T06:14:41.257222",
+  "date_range": {
+    "start": "2021-10-01 00:00:00",
+    "end": "2026-02-20 23:00:00"
+  }
+}

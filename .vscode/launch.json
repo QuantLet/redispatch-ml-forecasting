@@ -1,0 +1,206 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Dataset generation",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "dataset_preparation.generate_datasets",
+            "console": "integratedTerminal",
+            "args": [
+                "--combinations-path", "${workspaceFolder}/dataset_preparation/combinations_paper.json",
+                "--n-workers", "1",
+                "--output-dir", "${workspaceFolder}/data/model_data_paper",
+                "--redispatch-data-path", "${workspaceFolder}/data/redispatch_data_utc_23_feb_2026.csv",
+                "--translations-path", "${workspaceFolder}/data_processing/translations.json",
+                "--timezone", "UTC",
+                "--measurement-reasons", "domestic_redispatch",
+                "--start-date", "2021-10-01 00:00:00",
+                "--end-date", "2026-02-21 00:00:00",
+                "--oos-start-date", "2025-03-01",
+                // "--use-wandb"
+            ],
+        },
+        {
+            "name": "Model training test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "training.train_pipeline",
+            "console": "integratedTerminal",
+            "args": [
+                "--dataset-path", "${workspaceFolder}/data/model_data_new_features_debug/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce_TenneT_DE.parquet",
+                "--models", "nbeatsx",
+                "--max-steps", "5000",
+                "--early-stop-patience", "20",
+                "--shift-hours", "6",
+                "--persist-checkpoints",
+                // "--persist-checkpoints-to-wandb",
+                "--checkpoint-compression", "19",
+                "--checkpoint-compression-n-threads", "30",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+            },
+            "justMyCode": true
+        },
+        {
+            "name": "Model rolling window training test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "training.train_pipeline",
+            "console": "integratedTerminal",
+            "args": [
+                // "--dataset-path", "${workspaceFolder}/data/model_data_new_features_debug/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce_TenneT_DE.parquet",
+                "--dataset-path", "${workspaceFolder}/data/model_data_extended/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce_TenneT_DE.parquet",
+                "--models", "tft",
+                "--max-steps", "5000",
+                "--early-stop-patience", "20",
+                "--shift-hours", "6",
+                "--rolling-window",
+                "--start-window", "11",
+                // "--persist-checkpoints",
+                // "--persist-checkpoints-to-wandb",
+                // "--checkpoint-compression", "19",
+                // "--checkpoint-compression-n-threads", "30",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+            },
+            "justMyCode": true
+        },
+        {
+            "name": "Model training test with config",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "training.train_pipeline",
+            "console": "integratedTerminal",
+            "args": [
+                "--dataset-path", "${workspaceFolder}/data/model_data_new_features_debug/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce_50Hertz.parquet",
+                "--config", "${workspaceFolder}/training/neural_model_parameters.yaml",
+                // "--persist-checkpoints",
+                // "--persist-checkpoints-to-wandb",
+                // "--checkpoint-compression", "19",
+                // "--checkpoint-compression-n-threads", "30",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+            },
+            "justMyCode": true
+        },
+        {
+            "name": "prediction_pipeline test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "training.prediction_pipeline_new",
+            "console": "integratedTerminal",
+            "args": [
+                "--model-path", "${workspaceFolder}/outputs_single_window_new/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce/tennet_de/2026-02-21_19-04-46",
+                "--dataset-root-dir", "${workspaceFolder}/data/model_data_extended",
+                "--wandb-project", "redispatch-forecasting-proper",
+                // "--test-best-checkpoint",
+                "--n-threads", "40",
+                "--start-date", "2025-03-01",
+                "--output-dir", "${workspaceFolder}/outputs_single_window_new/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce/tennet_de/2026-02-21_19-04-46/evaluation",
+                //  "--persist-archive-dir",
+                "--benchmarks", "ridge_regression", //, "lightgbm", "auto_arima",
+                "--benchmark-config-path", "${workspaceFolder}/training/benchmark_config.yaml",
+            ]
+        },
+        {
+            "name": "prediction_pipeline_rolling_window test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "training.prediction_pipeline_rolling_window",
+            "console": "integratedTerminal",
+            "args": [
+                "--model-path", "${workspaceFolder}/outputs/tennet_de/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce/",
+                "--dataset-root-dir", "${workspaceFolder}/data/model_data_extended",
+                "--wandb-project", "redispatch-forecasting-proper",
+                // "--test-best-checkpoint",
+                "--output-dir", "${workspaceFolder}/outputs/tennet_de/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce/evaluation",
+                "--benchmark-config-path", "${workspaceFolder}/training/benchmark_config.yaml",
+                "--persist-archive-dir",
+                "--benchmarks", "ridge_regression",
+                "--start-window", "2",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "1",
+            }
+        },
+        {
+            "name": "explainability_pipeline single window test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "training.explainability_pipeline",
+            "console": "integratedTerminal",
+            "args": [
+                "--output-dir", "${workspaceFolder}/outputs_single_window/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce/50hertz/2026-02-15_03-28-26",
+                "--model-path", "${workspaceFolder}/outputs_single_window/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce/50hertz/2026-02-15_03-28-26",
+                "--model-filter", "seed",
+                "--mode", "absolute",
+                "--wandb-project", "redispatch-forecasting",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "1",
+            }
+        },
+        {
+            "name": "explainability_pipeline rolling window test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "training.explainability_pipeline",
+            "console": "integratedTerminal",
+            "args": [
+                "--output-dir", "${workspaceFolder}/outputs/tennet_de/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce",
+                "--model-path", "${workspaceFolder}/outputs/tennet_de/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce",
+                "--model-filter", "seed",
+                "--mode", "absolute",
+                "--wandb-project", "redispatch-forecasting-proper",
+                "--start-window", "2"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "1",
+            }
+        },
+        {
+            "name": "benchmark_ablation_validation_predictions test",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "training.benchmark_ablation_validation_predictions",
+            "console": "integratedTerminal",
+            "args": [
+                "--dataset-path", "${workspaceFolder}/data/model_data_new_features_debug/basic_day_ahead_price_wind_pv_cross_border_production_consumption_bloomberg_sce_TenneT_DE.parquet",
+                "--output-dir", "${workspaceFolder}/benchmark_ablation_arima/TenneT_DE/",
+                "--shift-hours", "6",
+                "--input-size", "TenneT_DE:24 50Hertz:36 Amprion:36 TransnetBW:24",
+                "--k-windows", "3",
+                "--early-stopping-buffer", "30",
+                "--early-stopping-rounds", "200",
+                "--lgb-device", "gpu",
+                "--n-jobs", "50",
+                "--models", "arima, croston",
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0",
+            }
+        }, 
+        {
+            "name": "Get paper results",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "paper_results_cli",
+            "console": "integratedTerminal",
+            "args": [
+                "--mae", 
+                "--predictions-dir", "outputs_paper",
+                "--dataset-root-dir-path", "data/model_data_paper",
+                "--dataset-name", "basic_day_ahead_price_wind_pv_production_consumption_sce",
+                "--best-checkpoint",
+                "--models", "lstm", "lightgbm_regression_rolling", "nhits", "nbeatsx", "tft"
+            ]
+        }
+    ]
+}

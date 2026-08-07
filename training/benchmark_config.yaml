@@ -1,0 +1,18 @@
+train_start: "2021-10-01"
+valid_start: "2025-01-01"
+test_start: "2025-03-01"
+
+start_window: 2
+
+ridge_alpha: 100
+
+gb_device: gpu
+gb_device_index: 0
+gb_n_jobs: 50
+gb_min_data_in_leaf:
+  TenneT_DE: 400
+  50Hertz: 400
+  Amprion: 400
+  TransnetBW: 200
+
+arima_use_approximation: true
