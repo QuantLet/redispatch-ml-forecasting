@@ -1,4 +1,5 @@
 models/50Hertz*
+models/
 models/darts_logs
 models/lightning_logs
 models/nixtla_logs
@@ -14,6 +15,20 @@ data_processing/**/stundenwerte*.zip
 models/local/nixtla_tb_logs
 .cache
 .env
-outputs*
 wandb
 pred_cache
+
+# DOI-backed paper artifacts (restored by scripts/download_paper_artifacts.py)
+outputs*/
+input_size_ablation*/
+benchmark_ablation*/
+neural_parameter_ablation*/
+data/*
+!data/model_data_paper_actuals_1h_lag/
+!data/model_data_paper_actuals_1h_lag/**
+
+# Local Zenodo build/download state
+zenodo_upload/
+.paper_artifacts/
+paper_*.tar.gz
+*.tar.gz.tmp

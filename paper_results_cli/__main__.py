@@ -126,21 +126,21 @@ def _build_parser() -> argparse.ArgumentParser:
              "(default: %(default)s).",
     )
     io.add_argument(
-        "--ablation-cache-dir", type=Path, default=Path("pred_cache/"),
+        "--ablation-cache-dir", type=Path, default=None,
         metavar="DIR",
         help="Optional parquet cache for ablation predictions "
-             "(default: %(default)s; use empty string to disable).",
+             "(disabled by default; pass a directory to enable).",
     )
     io.add_argument(
         "--interpretability-ig-root", type=Path,
-        default=Path("outputs_nhits_only_seed860_paper"),
+        default=Path("outputs_paper"),
         metavar="DIR",
         help="Root containing per-TSO IG outputs for interpretability "
              "(default: %(default)s).",
     )
     io.add_argument(
         "--interpretability-dataset-root", type=Path,
-        default=Path("data/model_data_paper"),
+        default=Path("data/model_data_paper_actuals_1h_lag"),
         metavar="DIR",
         help="Dataset metadata root for interpretability "
              "(default: %(default)s).",
@@ -165,7 +165,8 @@ def _build_parser() -> argparse.ArgumentParser:
              "Format: {\"label\": [\"YYYY-MM-DD\", \"YYYY-MM-DD\"], ...}",
     )
     ds.add_argument(
-        "--dataset-root-dir-path", type=Path, default=Path("data/model_data_extended/"), metavar="FILE",
+        "--dataset-root-dir-path", type=Path,
+        default=Path("data/model_data_paper_actuals_1h_lag"), metavar="FILE",
         help="Path to the dataset root directory (default: %(default)s). This is required for the descriptive outputs.",
     )
     ds.add_argument(

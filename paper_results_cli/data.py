@@ -12,10 +12,8 @@ from pathlib import Path
 
 import pandas as pd
 
-from covariate_effect.read_predictions import (
-    read_benchmark_predictions,
-    read_local_rolling_window_predictions,
-)
+from covariate_effect.constants import TSO_NAME_MAPPING
+from covariate_effect.read_predictions import read_benchmark_predictions
 
 from .config import BENCHMARK_MODELS, METADATA_COLS, PaperConfig, DEFAULT_MODEL_ORDER
 
@@ -52,43 +50,185 @@ def validate_predictions(df: pd.DataFrame, context: str = "") -> None:
         raise ValueError(f"Predictions contain null timestamps{tag}.")
 
 
-def _read_local_predictions_with_layout_fallback(
+def read_per_window_predictions(
     root_dir: Path,
     dataset_name: str,
     *,
     checkpoint_best: bool,
     model_filter: str = "seed",
+    dataset_root: Path | None = None,
+    actuals_dataset_name: str | None = None,
 ) -> pd.DataFrame:
-    """Read local rolling predictions across known training output layouts.
+    """Read canonical per-window checkpoint predictions.
 
-    Newer training runs commonly save neural predictions under ``evaluation/``;
-    some paper-result runs use ``predictions/``; older runs used
-    ``tree_importance/``.  The checkpoint suffix is handled by
-    ``read_local_rolling_window_predictions`` via *checkpoint_best*.
+    Best-checkpoint requests are strict: they read only
+    best-checkpoint files and never fall back to last-checkpoint files. The
+    dataset-level search is a compatibility path for pre-Zenodo training runs;
+    archives restore the same files below each ``window_N`` directory.
     """
-    candidate_dirs = ["predictions", "evaluation", "tree_importance"]
-    errors: list[str] = []
-    for evaluation_dir_name in candidate_dirs:
-        try:
-            df = read_local_rolling_window_predictions(
-                rolling_window_shift_dir=root_dir,
-                dataset_name=dataset_name,
-                evaluation_dir_name=evaluation_dir_name,
-                model_filter=model_filter,
-                checkpoint_best=checkpoint_best,
-            )
-            if not df.empty:
-                return df
-            errors.append(f"{evaluation_dir_name}: empty")
-        except Exception as exc:
-            errors.append(f"{evaluation_dir_name}: {exc}")
+    from training.data_prep import load_dataset, to_nixtla_format
 
-    checkpoint_label = "best checkpoint" if checkpoint_best else "last checkpoint"
-    raise FileNotFoundError(
-        f"No local rolling-window {checkpoint_label} predictions found for "
-        f"dataset '{dataset_name}' under '{root_dir}'. Tried: "
-        + "; ".join(errors)
+    pred_dir_name = "predictions_best_checkpoint" if checkpoint_best else "predictions"
+    file_prefix = pred_dir_name
+    canonical_pattern = re.compile(
+        rf"{re.escape(file_prefix)}_(?P<model>.+)_window(?P<window>\d+)\.parquet$"
     )
+    frames: list[pd.DataFrame] = []
+
+    for tso_dir in sorted(root_dir.glob("*")):
+        tso_key = tso_dir.name.lower()
+        if not tso_dir.is_dir() or tso_key not in TSO_DIR_NAMES:
+            continue
+        dataset_dir = tso_dir / dataset_name
+        if not dataset_dir.is_dir():
+            continue
+
+        tso_name = TSO_NAME_MAPPING.get(tso_key, tso_dir.name)
+        model_dataset: pd.DataFrame | None = None
+        candidates: list[tuple[Path, re.Match[str]]] = []
+        for pred_file in sorted(
+            dataset_dir.glob(
+                f"window_*/evaluation/{pred_dir_name}/{file_prefix}_*.parquet"
+            )
+        ):
+            match = canonical_pattern.fullmatch(pred_file.name)
+            if match is not None:
+                candidates.append((pred_file, match))
+
+        if not candidates:
+            checkpoint_suffix = "_best_checkpoint" if checkpoint_best else ""
+            legacy_pattern = re.compile(
+                rf"predictions_(?P<model>.+)_{re.escape(tso_name)}_.*_window"
+                rf"(?P<window>\d+){checkpoint_suffix}\.parquet$"
+            )
+            for pred_file in sorted((dataset_dir / "evaluation").glob("predictions_*.parquet")):
+                match = legacy_pattern.fullmatch(pred_file.name)
+                if match is not None:
+                    candidates.append((pred_file, match))
+
+        if not candidates:
+            ig_dir_name = "ig_preds_best_checkpoint" if checkpoint_best else "ig_preds"
+            ig_pattern = re.compile(
+                rf"{re.escape(ig_dir_name)}_(?P<model>.+)_window(?P<window>\d+)\.parquet$"
+            )
+            for pred_file in sorted(dataset_dir.glob(
+                f"window_*/evaluation/{ig_dir_name}/{ig_dir_name}_*.parquet"
+            )):
+                match = ig_pattern.fullmatch(pred_file.name)
+                if match is not None:
+                    candidates.append((pred_file, match))
+
+        for pred_file, match in candidates:
+            if model_filter not in match.group("model"):
+                continue
+
+            df = pd.read_parquet(pred_file)
+            if "y" not in df.columns:
+                if dataset_root is None:
+                    raise FileNotFoundError(
+                        f"Prediction file '{pred_file}' has no 'y' column and no "
+                        "dataset root was supplied. The tracked paper datasets are "
+                        "under data/model_data_paper_actuals_1h_lag."
+                    )
+                if model_dataset is None:
+                    actuals_name = actuals_dataset_name or dataset_name
+                    actuals_path = dataset_root / f"{actuals_name}_{tso_name}.parquet"
+                    if not actuals_path.exists() and actuals_name != dataset_name:
+                        actuals_path = dataset_root / f"{dataset_name}_{tso_name}.parquet"
+                    if not actuals_path.exists():
+                        raise FileNotFoundError(
+                            f"Cannot attach targets for '{pred_file}'; dataset not found: "
+                            f"{actuals_path}. Restore the tracked paper datasets "
+                            "under data/model_data_paper_actuals_1h_lag."
+                        )
+                    model_dataset, _ = load_dataset(actuals_path)
+                    model_dataset = to_nixtla_format(model_dataset)
+                df = df.merge(
+                    model_dataset[["unique_id", "ds", "y"]],
+                    on=["unique_id", "ds"],
+                    how="left",
+                )
+
+            id_vars = ["unique_id", "ds", "horizon", "y"]
+            missing = set(id_vars) - set(df.columns)
+            if missing:
+                raise ValueError(
+                    f"Prediction file '{pred_file}' is missing columns {sorted(missing)}."
+                )
+            expected_model = match.group("model")
+            model_cols = [
+                c for c in df.columns if c not in set(id_vars) | {"dataset", "tso"}
+            ]
+            if expected_model not in model_cols and len(model_cols) == 1:
+                df = df.rename(columns={model_cols[0]: expected_model})
+                model_cols = [expected_model]
+            if expected_model in model_cols:
+                model_cols = [expected_model]
+            if not model_cols:
+                raise ValueError(f"Prediction file '{pred_file}' has no model column.")
+
+            melted = df.melt(
+                id_vars=id_vars,
+                value_vars=model_cols,
+                var_name="model",
+                value_name="y_pred",
+            )
+            melted["tso"] = tso_name
+            melted["window_index"] = int(match.group("window"))
+            frames.append(melted)
+
+    if not frames:
+        checkpoint_label = "best-checkpoint" if checkpoint_best else "last-checkpoint"
+        raise FileNotFoundError(
+            f"No {checkpoint_label} per-window predictions matching "
+            f"'{model_filter}' for dataset '{dataset_name}' under '{root_dir}'. "
+            "Download them with: python scripts/download_paper_artifacts.py --predictions"
+        )
+
+    long_df = pd.concat(frames, ignore_index=True)
+    keys = ["tso", "unique_id", "ds", "horizon", "y", "window_index", "model"]
+    duplicate_mask = long_df.duplicated(keys, keep=False)
+    if duplicate_mask.any():
+        conflicts = long_df.loc[duplicate_mask].groupby(keys, dropna=False)["y_pred"].nunique()
+        if (conflicts > 1).any():
+            raise ValueError("Conflicting duplicate per-window predictions were found.")
+        long_df = long_df.drop_duplicates(keys, keep="first")
+
+    return long_df.pivot(
+        index=["tso", "unique_id", "ds", "horizon", "y", "window_index"],
+        columns="model",
+        values="y_pred",
+    ).reset_index()
+
+
+def _read_benchmark_predictions_strict(
+    root_dir: Path,
+    dataset_name: str,
+    start_date: pd.Timestamp,
+) -> pd.DataFrame:
+    """Read exactly one benchmark CSV for every available TSO dataset."""
+    found_tsos = 0
+    for tso_dir in sorted(root_dir.glob("*")):
+        if not tso_dir.is_dir() or tso_dir.name.lower() not in TSO_DIR_NAMES:
+            continue
+        dataset_dir = tso_dir / dataset_name
+        if not dataset_dir.is_dir():
+            continue
+        found_tsos += 1
+        matches = sorted((dataset_dir / "evaluation").glob("benchmarks_*.csv"))
+        if len(matches) != 1:
+            raise FileNotFoundError(
+                f"Expected exactly one benchmark CSV under "
+                f"'{dataset_dir / 'evaluation'}', found {len(matches)}. "
+                "Download the canonical files with: "
+                "python scripts/download_paper_artifacts.py --predictions"
+            )
+    if found_tsos == 0:
+        raise FileNotFoundError(
+            f"No TSO datasets found for '{dataset_name}' under '{root_dir}'. "
+            "Download them with: python scripts/download_paper_artifacts.py --predictions"
+        )
+    return read_benchmark_predictions(root_dir, dataset_name, start_date=start_date)
 
 
 def _seed_specific_dir_candidates(base_dir: Path, seed: int, *, shifted: bool = False) -> list[Path]:
@@ -151,98 +291,6 @@ def _resolve_dataset_name(root_dir: Path, requested_name: str) -> str:
     if len(available) == 1:
         return available[0]
     return requested_name
-
-
-def _read_ablation_ig_predictions(
-    root_dir: Path,
-    dataset_name: str,
-    seed: int,
-    checkpoint_best: bool,
-    dataset_root: Path,
-    actuals_dataset_name: str,
-) -> pd.DataFrame:
-    """Read forecast predictions saved beside IG tensors for ablation."""
-    from training.data_prep import load_dataset, to_nixtla_format
-
-    frames: list[pd.DataFrame] = []
-    pred_layouts = (
-        [("ig_preds_best_checkpoint", "ig_preds_best_checkpoint"), ("ig_preds", "ig_preds")]
-        if checkpoint_best
-        else [("ig_preds", "ig_preds")]
-    )
-    tso_display = {
-        "50hertz": "50Hertz",
-        "amprion": "Amprion",
-        "transnetbw": "TransnetBW",
-        "tennet_de": "TenneT_DE",
-    }
-
-    for tso_dir in root_dir.glob("*"):
-        if not tso_dir.is_dir() or tso_dir.name.lower() not in TSO_DIR_NAMES:
-            continue
-        ig_root = tso_dir / dataset_name
-        if not ig_root.is_dir():
-            continue
-        tso_name = tso_display.get(tso_dir.name.lower(), tso_dir.name)
-        model_dataset = None
-        for actuals_name in dict.fromkeys([actuals_dataset_name, dataset_name]):
-            actuals_path = dataset_root / f"{actuals_name}_{tso_name}.parquet"
-            if actuals_path.exists():
-                model_dataset, _ = load_dataset(actuals_path)
-                model_dataset = to_nixtla_format(model_dataset)
-                break
-
-        for pred_dir_name, file_prefix in pred_layouts:
-            pattern = re.compile(rf"{file_prefix}_(?P<model>.+_seed{seed})_window(?P<window>\d+)\.parquet$")
-            for pred_file in ig_root.glob(f"window_*/evaluation/{pred_dir_name}/{file_prefix}_*.parquet"):
-                match = pattern.match(pred_file.name)
-                if match is None:
-                    continue
-                df = pd.read_parquet(pred_file)
-                if "y" not in df.columns:
-                    if model_dataset is None:
-                        raise FileNotFoundError(
-                            f"Cannot attach y for '{pred_file}'; no dataset parquet found under '{dataset_root}'."
-                        )
-                    df = df.merge(
-                        model_dataset[["unique_id", "ds", "y"]],
-                        on=["unique_id", "ds"],
-                        how="left",
-                    )
-                model_name = match.group("model")
-                window_index = int(match.group("window"))
-                id_vars = ["unique_id", "ds", "horizon", "y"]
-                missing = set(id_vars) - set(df.columns)
-                if missing:
-                    raise ValueError(f"IG prediction file '{pred_file}' is missing columns {sorted(missing)}.")
-                model_cols = [
-                    c for c in df.columns
-                    if c not in set(id_vars) | {"dataset", "tso"}
-                ]
-                if model_name not in model_cols and len(model_cols) == 1:
-                    df = df.rename(columns={model_cols[0]: model_name})
-                    model_cols = [model_name]
-                melted = df.melt(
-                    id_vars=id_vars,
-                    value_vars=model_cols,
-                    var_name="model",
-                    value_name="y_pred",
-                )
-                melted["tso"] = tso_name
-                melted["window_index"] = window_index
-                frames.append(melted)
-
-    if not frames:
-        raise FileNotFoundError(
-            f"No IG prediction files found for seed={seed}, dataset='{dataset_name}' under '{root_dir}'."
-        )
-
-    concatenated = pd.concat(frames, ignore_index=True)
-    return concatenated.pivot_table(
-        index=["tso", "unique_id", "ds", "horizon", "y", "window_index"],
-        columns="model",
-        values="y_pred",
-    ).reset_index()
 
 
 # ---------------------------------------------------------------------------
@@ -403,14 +451,16 @@ def load_predictions(config: PaperConfig, apply_model_selection: bool) -> pd.Dat
     apply_model_selection:
         Whether to apply model selection.
     """
-    preds = _read_local_predictions_with_layout_fallback(
+    preds = read_per_window_predictions(
         root_dir=config.predictions_dir,
         dataset_name=config.dataset_name,
         checkpoint_best=config.best_checkpoint,
+        dataset_root=config.dataset_dir,
+        actuals_dataset_name=config.dataset_name,
     )
     validate_predictions(preds, context="full-cov predictions")
 
-    benchmarks = read_benchmark_predictions(
+    benchmarks = _read_benchmark_predictions_strict(
         root_dir=config.benchmarks_dir,
         dataset_name=config.dataset_name,
         start_date=pd.Timestamp(config.start_date),
@@ -452,7 +502,7 @@ def load_benchmark_predictions_with_target(
     predictions_df:
         Full merged predictions DataFrame (returned by :func:`load_predictions`).
     """
-    benchmarks = read_benchmark_predictions(
+    benchmarks = _read_benchmark_predictions_strict(
         root_dir=config.benchmarks_dir,
         dataset_name=config.dataset_name,
         start_date=pd.Timestamp(config.start_date),
@@ -543,22 +593,14 @@ def load_ablation_predictions(
                     )
 
         try:
-            try:
-                df = _read_ablation_ig_predictions(
-                    root_dir=d,
-                    dataset_name=ds_name,
-                    seed=seed,
-                    checkpoint_best=config.best_checkpoint,
-                    dataset_root=config.dataset_dir,
-                    actuals_dataset_name=config.dataset_name,
-                )
-            except Exception:
-                df = _read_local_predictions_with_layout_fallback(
-                    root_dir=d,
-                    dataset_name=ds_name,
-                    checkpoint_best=config.best_checkpoint,
-                    model_filter=f"seed{seed}",
-                )
+            df = read_per_window_predictions(
+                root_dir=d,
+                dataset_name=ds_name,
+                checkpoint_best=config.best_checkpoint,
+                model_filter=f"seed{seed}",
+                dataset_root=config.dataset_dir,
+                actuals_dataset_name=config.dataset_name,
+            )
         except Exception as exc:
             raise RuntimeError(
                 f"Failed to load ablation predictions for seed={seed}, "

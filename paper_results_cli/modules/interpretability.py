@@ -191,26 +191,12 @@ def _load_tso_direction_shares(
     })
 
     output_dir = inputs.ig_root / tso_key / inputs.dataset_name
-    try:
-        ig_dirs = discover_ig_directories(
-            output_dir,
-            model_filter=inputs.model_filter,
-            start_window=inputs.start_window,
-            best_checkpoint=inputs.best_checkpoint,
-        )
-    except FileNotFoundError:
-        if not inputs.best_checkpoint:
-            raise
-        logger.warning(
-            "Best-checkpoint IG directories not found under %s; falling back to ig_raw.",
-            output_dir,
-        )
-        ig_dirs = discover_ig_directories(
-            output_dir,
-            model_filter=inputs.model_filter,
-            start_window=inputs.start_window,
-            best_checkpoint=False,
-        )
+    ig_dirs = discover_ig_directories(
+        output_dir,
+        model_filter=inputs.model_filter,
+        start_window=inputs.start_window,
+        best_checkpoint=inputs.best_checkpoint,
+    )
     if not ig_dirs:
         raise FileNotFoundError(f"No IG directories found under {output_dir}")
 
@@ -377,8 +363,8 @@ def run(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Generate Table 1 and the horizon-block attribution heatmap."""
     inputs = InterpretabilityInputs(
-        ig_root=ig_root or Path("outputs_nhits_only_seed860_paper"),
-        dataset_root=dataset_root or Path("data/model_data_paper"),
+        ig_root=ig_root or Path("outputs_paper"),
+        dataset_root=dataset_root or Path("data/model_data_paper_actuals_1h_lag"),
         dataset_name=dataset_name or "basic_day_ahead_price_wind_pv_production_consumption_sce",
         model_filter=model_filter,
         start_window=start_window,

@@ -8,11 +8,12 @@ Example
 -------
 python -m paper_results_cli.plot_best_checkpoint_windows \\
     --predictions-dir outputs_paper \\
+    --benchmark-dir outputs_paper \\
     --dataset-name basic_day_ahead_price_wind_pv_production_consumption_sce \\
-    --dataset-dir data/model_data_paper \\
+    --dataset-dir data/model_data_paper_actuals_1h_lag \\
     --tso 50Hertz \\
     --windows 2 3 \\
-    --models nhits tft
+    --models nhits tft ridge_regression_rolling
 """
 from __future__ import annotations
 
@@ -24,9 +25,16 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from paper_results_cli.config import DATASET_NAME, DEFAULT_MODELS
+from paper_results_cli.config import (
+    BENCHMARK_MODELS,
+    DATASET_NAME,
+    DEFAULT_MODELS,
+    DEFAULT_START_DATE,
+    PaperConfig,
+)
 from paper_results_cli.data import (
-    _read_local_predictions_with_layout_fallback,
+    load_benchmark_predictions_with_target,
+    read_per_window_predictions,
     _resolve_dataset_name,
     resolve_model_columns,
     select_models,
@@ -145,6 +153,70 @@ def _filter_predictions(
     return filtered
 
 
+def _merge_benchmark_predictions(
+    predictions: pd.DataFrame,
+    *,
+    benchmark_dir: Path,
+    dataset_name: str,
+    start_date: str,
+    requested_models: list[str],
+) -> pd.DataFrame:
+    """Attach requested benchmark columns to per-window neural predictions."""
+    csv_benchmark_models = set(BENCHMARK_MODELS) - {"lstm"}
+    requested_benchmarks = [
+        model for model in requested_models if model in csv_benchmark_models
+    ]
+    if not requested_benchmarks:
+        return predictions
+
+    key_cols = ["tso", "unique_id", "ds", "horizon"]
+    window_key_cols = [*key_cols, "y", "window_index"]
+    anchor_cols = resolve_model_columns(predictions, DEFAULT_MODELS)
+    if not anchor_cols:
+        raise ValueError(
+            "Benchmark loading needs at least one neural prediction column "
+            "to attach targets, but none of the default neural models were found."
+        )
+
+    target_source = (
+        predictions[[*key_cols, "y", anchor_cols[0]]]
+        .drop_duplicates(key_cols)
+        .copy()
+    )
+    config = PaperConfig(
+        predictions_dir=benchmark_dir,
+        benchmarks_dir=benchmark_dir,
+        dataset_name=dataset_name,
+        start_date=start_date,
+        models=requested_benchmarks,
+    )
+    benchmarks = load_benchmark_predictions_with_target(config, target_source)
+    benchmarks = select_models(benchmarks, requested_benchmarks)
+
+    benchmark_cols = resolve_model_columns(benchmarks, requested_benchmarks)
+    window_keys = predictions[window_key_cols].drop_duplicates().copy()
+    benchmarks_by_window = window_keys.merge(
+        benchmarks[[*key_cols, *benchmark_cols]],
+        on=key_cols,
+        how="left",
+    )
+
+    missing_cols = [
+        col for col in benchmark_cols if benchmarks_by_window[col].isna().all()
+    ]
+    if missing_cols:
+        raise ValueError(
+            "Benchmark columns could not be aligned to selected windows: "
+            f"{missing_cols}"
+        )
+
+    return predictions.merge(
+        benchmarks_by_window,
+        on=window_key_cols,
+        how="left",
+    )
+
+
 def _make_window_plot(
     window_df: pd.DataFrame,
     actuals_df: pd.DataFrame | None,
@@ -236,7 +308,13 @@ def build_parser() -> argparse.ArgumentParser:
         prog="python -m paper_results_cli.plot_best_checkpoint_windows",
         description="Plot selected best-checkpoint rolling-window predictions.",
     )
-    parser.add_argument("--predictions-dir", type=Path, default=Path("outputs/"))
+    parser.add_argument("--predictions-dir", type=Path, default=Path("outputs_paper/"))
+    parser.add_argument(
+        "--benchmark-dir",
+        type=Path,
+        default=None,
+        help="Root of benchmark predictions (default: same as --predictions-dir).",
+    )
     parser.add_argument("--dataset-name", default=DATASET_NAME)
     parser.add_argument(
         "--dataset-dir",
@@ -252,7 +330,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output-dir", type=Path, default=Path("paper_results/figures"))
     parser.add_argument("--style-dir", type=Path, default=Path("paper_results/style"))
     parser.add_argument("--windows", nargs="+", type=int, required=True)
-    parser.add_argument("--models", nargs="+", default=DEFAULT_MODELS)
+    parser.add_argument("--models", nargs="+", default=DEFAULT_MODELS + BENCHMARK_MODELS)
     parser.add_argument(
         "--tso",
         nargs="+",
@@ -294,14 +372,22 @@ def main(argv: list[str] | None = None) -> None:
     apply_paper_style()
     dataset_name = _resolve_dataset_name(args.predictions_dir, args.dataset_name)
     actuals_dataset_name = args.actuals_dataset_name or dataset_name
+    benchmark_dir = args.benchmark_dir or args.predictions_dir
     tsos = [_normalise_tso(tso) for tso in args.tso] if args.tso else None
 
-    predictions = _read_local_predictions_with_layout_fallback(
+    predictions = read_per_window_predictions(
         root_dir=args.predictions_dir,
         dataset_name=dataset_name,
         checkpoint_best=True,
     )
     validate_predictions(predictions, context="best-checkpoint predictions")
+    predictions = _merge_benchmark_predictions(
+        predictions,
+        benchmark_dir=benchmark_dir,
+        dataset_name=dataset_name,
+        start_date=args.start_date or DEFAULT_START_DATE,
+        requested_models=args.models,
+    )
     predictions = select_models(predictions, args.models)
     predictions = _filter_predictions(
         predictions,

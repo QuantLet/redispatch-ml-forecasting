@@ -1,5 +1,6 @@
 # ── Directories ────────────────────────────────────────────────────────────
 output_dir: "/home/jovyan/redispatch-ml-forecasting/outputs_nhits_only_seed860"
+checkpoint_selection: "best"
 
 # ── Forecast ───────────────────────────────────────────────────────────────
 forecast_horizon: 24

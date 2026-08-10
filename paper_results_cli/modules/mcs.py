@@ -143,6 +143,55 @@ def _fbeta_dominance(
     return _select_order_rename(dominance, table_models)  # type: ignore[return-value]
 
 
+def _fbeta_dominance_by_sparsity(
+    predictions_df: pd.DataFrame,
+    config: PaperConfig,
+    table_models: list[str],
+) -> pd.DataFrame:
+    """Return F-beta dominance computed independently on dense/sparse series."""
+    series_sparsity = (
+        predictions_df.groupby(["tso", "unique_id"])["y"]
+        .apply(lambda values: (values == 0).mean() >= config.dm_sparsity_threshold)
+        .rename("sparse")
+    )
+    columns: dict[str, pd.Series] = {}
+    for label, is_sparse in (("Dense", False), ("Sparse", True)):
+        keys = series_sparsity[series_sparsity == is_sparse].index
+        mask = pd.MultiIndex.from_frame(
+            predictions_df[["tso", "unique_id"]]
+        ).isin(keys)
+        subset = predictions_df.loc[mask]
+        if subset.empty:
+            columns[label] = pd.Series(dtype=float)
+        else:
+            columns[label] = _fbeta_dominance(subset, config, table_models)
+    return pd.DataFrame(columns).reindex(columns=["Dense", "Sparse"])
+
+
+def _mcs_inclusion_marks(
+    predictions_df: pd.DataFrame,
+    config: PaperConfig,
+) -> pd.DataFrame:
+    """Return exact MCS membership for every selected model and target series."""
+    filtered = select_models(predictions_df, config.models, by_index=False)
+    mcs_df = compare_models_mcs(
+        filtered,
+        alpha=config.mcs_alpha,
+        start_date=config.start_date,
+    )
+    marks = mcs_df.pivot_table(
+        index="models",
+        columns=["tso", "direction"],
+        values="status",
+        aggfunc=lambda values: values.iloc[0] == "included",
+    )
+    marks = apply_model_ordering(marks, by_index=True)
+    marks = marks.rename(index=get_model_display_name)
+    marks.index.name = "Model"
+    marks.columns.names = ["TSO", "Series"]
+    return marks
+
+
 def _rename_columns(latex: str, df: pd.DataFrame) -> str:
     column_mapping = {
         "models": "Model",
@@ -317,15 +366,10 @@ def run_mcs_overall_benchmark_fbeta(
 def run_mcs_glued_summary(
     predictions_df: pd.DataFrame,
     config: PaperConfig,
-    fbeta_dominance: pd.Series | None = None,
 ) -> pd.DataFrame:
-    """Save a compact glued table with measure moved to the row index."""
+    """Save dense/sparse MCS inclusion and F-beta dominance percentages."""
     logger.info("  MCS - glued summary ...")
     table_models = _table_models(config)
-    overall = _select_order_rename(
-        _inclusion_rate(predictions_df, config.mcs_alpha, start_date=config.start_date),
-        table_models,
-    )
     overall_sparsity = _select_order_rename(
         _inclusion_rate_by_sparsity(
             predictions_df,
@@ -335,37 +379,16 @@ def run_mcs_glued_summary(
         ),
         table_models,
     )
-    benchmark_predictions = select_models(predictions_df, BENCHMARK_MODELS, by_index=False)
-    benchmarks = _select_order_rename(
-        _inclusion_rate(
-            benchmark_predictions,
-            config.mcs_alpha,
-            start_date=config.start_date,
-        ),
-        BENCHMARK_MODELS,
-    ).reindex(overall.index)
-    benchmark_sparsity = _select_order_rename(
-        _inclusion_rate_by_sparsity(
-            benchmark_predictions,
-            config.mcs_alpha,
-            start_date=config.start_date,
-            sparsity_threshold=config.dm_sparsity_threshold,
-        ),
-        BENCHMARK_MODELS,
-    ).reindex(overall.index)
-    fbeta = (
-        _fbeta_dominance(predictions_df, config, table_models)
-        if fbeta_dominance is None
-        else fbeta_dominance
-    )
+    fbeta_sparsity = _fbeta_dominance_by_sparsity(
+        predictions_df, config, table_models
+    ).reindex(overall_sparsity.index)
 
     rows: list[dict[str, object]] = []
-    for model in overall.index:
+    for model in overall_sparsity.index:
         rows.append(
             {
                 "Model": model,
-                "Measure": "Overall MCS",
-                "Overall": overall.loc[model],
+                "Measure": "MCS inclusion",
                 "Dense": overall_sparsity.loc[model, "Dense"],
                 "Sparse": overall_sparsity.loc[model, "Sparse"],
             }
@@ -373,19 +396,9 @@ def run_mcs_glued_summary(
         rows.append(
             {
                 "Model": model,
-                "Measure": "Benchmark-only MCS",
-                "Overall": benchmarks.loc[model],
-                "Dense": benchmark_sparsity.loc[model, "Dense"],
-                "Sparse": benchmark_sparsity.loc[model, "Sparse"],
-            }
-        )
-        rows.append(
-            {
-                "Model": model,
                 "Measure": rf"F$_{{\beta={config.fbeta_beta:.0f}}}$ dominance",
-                "Overall": fbeta.loc[model],
-                "Dense": pd.NA,
-                "Sparse": pd.NA,
+                "Dense": fbeta_sparsity.loc[model, "Dense"],
+                "Sparse": fbeta_sparsity.loc[model, "Sparse"],
             }
         )
     df = pd.DataFrame(rows).set_index(["Model", "Measure"])
@@ -394,10 +407,35 @@ def run_mcs_glued_summary(
         config.tables_dir / "mcs_glued_summary.tex",
         caption=(
             f"MCS inclusion and "
-            rf"F$_{{\beta={config.fbeta_beta:.0f}}}$ dominance summary"
+            rf"F$_{{\beta={config.fbeta_beta:.0f}}}$ dominance by target sparsity"
         ),
         formatters={col: make_percentage_formatter(2) for col in df.columns},
         final_form_callback=_rename_columns,
+    )
+    return df
+
+
+def run_mcs_inclusion_by_series(
+    predictions_df: pd.DataFrame,
+    config: PaperConfig,
+) -> pd.DataFrame:
+    """Save binary MCS inclusion for each selected model and target series."""
+    logger.info("  MCS - exact inclusion by series ...")
+    df = _mcs_inclusion_marks(predictions_df, config)
+
+    def mark(value: object) -> str:
+        return r"\textbf{X}" if pd.notna(value) and bool(value) else ""
+
+    def tidy_header(latex: str, table: pd.DataFrame) -> str:
+        return _rename_columns(latex, table).replace("SeriesModel &", "Model &")
+
+    save_latex_table(
+        df,
+        config.tables_dir / "mcs_inclusion_by_series.tex",
+        caption=f"MCS inclusion by target series ($\\alpha={config.mcs_alpha}$); "
+        r"an \textbf{X} denotes inclusion.",
+        formatters={column: mark for column in df.columns},
+        final_form_callback=tidy_header,
     )
     return df
 
@@ -518,17 +556,7 @@ def run(config: PaperConfig) -> None:
     run_mcs_overall(predictions_df, config, file_name="mcs_overall_unfiltered.tex", apply_filtering=False)
     run_mcs_overall(predictions_df, config, file_name="mcs_overall_benchmarks.tex", apply_filtering=False, model_subset=BENCHMARK_MODELS)
     run_mcs_by_sparsity(predictions_df, config, file_name="mcs_by_sparsity.tex")
-    run_mcs_overall_benchmark_sparsity(predictions_df, config)
-    fbeta_dominance = _fbeta_dominance(predictions_df, config, _table_models(config))
-    run_mcs_overall_benchmark_fbeta(
-        predictions_df,
-        config,
-        fbeta_dominance=fbeta_dominance,
-    )
-    run_mcs_glued_summary(
-        predictions_df,
-        config,
-        fbeta_dominance=fbeta_dominance,
-    )
+    run_mcs_glued_summary(predictions_df, config)
+    run_mcs_inclusion_by_series(predictions_df, config)
     run_mcs_per_regime(predictions_df, config)
     run_mcs_horizon_heatmap(predictions_df, config)

@@ -1,0 +1,36 @@
+{
+  "artifacts": {
+    "ablations": {
+      "filename": "paper_ablations.tar.gz",
+      "sha256": "REPLACE_WITH_SHA256",
+      "top_level_paths": [
+        "benchmark_ablation_paper",
+        "input_size_ablation_paper"
+      ],
+      "url": "REPLACE_WITH_ZENODO_DIRECT_URL"
+    },
+    "interpretability": {
+      "filename": "paper_interpretability.tar.gz",
+      "sha256": "REPLACE_WITH_SHA256",
+      "top_level_paths": [
+        "outputs_paper"
+      ],
+      "url": "REPLACE_WITH_ZENODO_DIRECT_URL"
+    },
+    "predictions": {
+      "filename": "paper_predictions.tar.gz",
+      "sha256": "REPLACE_WITH_SHA256",
+      "top_level_paths": [
+        "outputs_nhits_only_seed860_paper",
+        "outputs_no_covariates",
+        "outputs_no_covariates_nhits_only_seed860",
+        "outputs_paper",
+        "outputs_shifted_targets_17_paper",
+        "outputs_shifted_targets_17_seed860_paper"
+      ],
+      "url": "REPLACE_WITH_ZENODO_DIRECT_URL"
+    }
+  },
+  "doi": "REPLACE_WITH_VERSION_SPECIFIC_ZENODO_DOI",
+  "schema_version": 1
+}

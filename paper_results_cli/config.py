@@ -130,13 +130,15 @@ class PaperConfig:
     shift_dir: Path = field(
         default_factory=lambda: Path("outputs_shifted_targets_17/")
     )
-    ablation_cache_dir: Path | None = field(default_factory=lambda: Path("pred_cache/"))
+    ablation_cache_dir: Path | None = None
     best_checkpoint: bool = False
 
     # --- Dataset ---
     dataset_name: str = DATASET_NAME
     start_date: str = DEFAULT_START_DATE
-    dataset_dir: Path = field(default_factory=lambda: Path("data/model_data_extended/"))
+    dataset_dir: Path = field(
+        default_factory=lambda: Path("data/model_data_paper_actuals_1h_lag")
+    )
     train_config_yaml_path: Path = field(default_factory=lambda: Path("training/neural_model_parameters.yaml"))
 
     # --- Output ---

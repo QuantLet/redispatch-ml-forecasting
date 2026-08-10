@@ -1,45 +1,36 @@
 \begin{table}
-\caption{MCS inclusion and F$_{\beta=2}$ dominance summary}
-\begin{tabular}{llrll}
+\caption{MCS ($\alpha=0.25$, 5{,}000 stationary bootstrap replications) inclusion and F$_{\beta=2}$ dominance by target sparsity}
+\begin{tabular}{llrr}
 \toprule
-Model & Measure & Overall & Dense & Sparse \\
+Model & Measure & Dense & Sparse \\
 \midrule
-\multirow[t]{3}{*}{LightGBM} & Overall MCS & 12.50\% & 0.00\% & 33.33\% \\
- & Benchmark-only MCS & 62.50\% & 40.00\% & 100.00\% \\
- & F$_{\beta=2}$ dominance & 35.94\% &  &  \\
-\cline{1-5}
-\multirow[t]{3}{*}{ARIMA} & Overall MCS & 0.00\% & 0.00\% & 0.00\% \\
- & Benchmark-only MCS & 37.50\% & 40.00\% & 33.33\% \\
- & F$_{\beta=2}$ dominance & 56.25\% &  &  \\
-\cline{1-5}
-\multirow[t]{3}{*}{Ridge} & Overall MCS & 0.00\% & 0.00\% & 0.00\% \\
- & Benchmark-only MCS & 0.00\% & 0.00\% & 0.00\% \\
- & F$_{\beta=2}$ dominance & 35.94\% &  &  \\
-\cline{1-5}
-\multirow[t]{3}{*}{Naive} & Overall MCS & 0.00\% & 0.00\% & 0.00\% \\
- & Benchmark-only MCS & 0.00\% & 0.00\% & 0.00\% \\
- & F$_{\beta=2}$ dominance & 6.25\% &  &  \\
-\cline{1-5}
-\multirow[t]{3}{*}{Seasonal reg} & Overall MCS & 0.00\% & 0.00\% & 0.00\% \\
- & Benchmark-only MCS & 0.00\% & 0.00\% & 0.00\% \\
- & F$_{\beta=2}$ dominance & 82.81\% &  &  \\
-\cline{1-5}
-\multirow[t]{3}{*}{LSTM} & Overall MCS & 0.00\% & 0.00\% & 0.00\% \\
- & Benchmark-only MCS & 50.00\% & 60.00\% & 33.33\% \\
- & F$_{\beta=2}$ dominance & 51.56\% &  &  \\
-\cline{1-5}
-\multirow[t]{3}{*}{NBEATSx} & Overall MCS & 75.00\% & 80.00\% & 66.67\% \\
- & Benchmark-only MCS &  &  &  \\
- & F$_{\beta=2}$ dominance & 48.44\% &  &  \\
-\cline{1-5}
-\multirow[t]{3}{*}{NHiTS} & Overall MCS & 50.00\% & 40.00\% & 66.67\% \\
- & Benchmark-only MCS &  &  &  \\
- & F$_{\beta=2}$ dominance & 53.12\% &  &  \\
-\cline{1-5}
-\multirow[t]{3}{*}{TFT} & Overall MCS & 37.50\% & 40.00\% & 33.33\% \\
- & Benchmark-only MCS &  &  &  \\
- & F$_{\beta=2}$ dominance & 79.69\% &  &  \\
-\cline{1-5}
+\multirow[t]{2}{*}{LightGBM} & MCS inclusion & 0.00\% & 33.33\% \\
+ & F$_{\beta=2}$ dominance & 57.50\% & 0.00\% \\
+\cline{1-4}
+\multirow[t]{2}{*}{ARIMA} & MCS inclusion & 0.00\% & 0.00\% \\
+ & F$_{\beta=2}$ dominance & 35.00\% & 91.67\% \\
+\cline{1-4}
+\multirow[t]{2}{*}{Ridge} & MCS inclusion & 0.00\% & 0.00\% \\
+ & F$_{\beta=2}$ dominance & 27.50\% & 50.00\% \\
+\cline{1-4}
+\multirow[t]{2}{*}{Naive} & MCS inclusion & 0.00\% & 0.00\% \\
+ & F$_{\beta=2}$ dominance & 0.00\% & 16.67\% \\
+\cline{1-4}
+\multirow[t]{2}{*}{Seasonal Ridge} & MCS inclusion & 0.00\% & 0.00\% \\
+ & F$_{\beta=2}$ dominance & 90.00\% & 70.83\% \\
+\cline{1-4}
+\multirow[t]{2}{*}{LSTM} & MCS inclusion & 0.00\% & 0.00\% \\
+ & F$_{\beta=2}$ dominance & 65.00\% & 29.17\% \\
+\cline{1-4}
+\multirow[t]{2}{*}{NBEATSx} & MCS inclusion & 80.00\% & 66.67\% \\
+ & F$_{\beta=2}$ dominance & 40.00\% & 62.50\% \\
+\cline{1-4}
+\multirow[t]{2}{*}{NHiTS} & MCS inclusion & 40.00\% & 66.67\% \\
+ & F$_{\beta=2}$ dominance & 50.00\% & 58.33\% \\
+\cline{1-4}
+\multirow[t]{2}{*}{TFT} & MCS inclusion & 40.00\% & 33.33\% \\
+ & F$_{\beta=2}$ dominance & 85.00\% & 70.83\% \\
+\cline{1-4}
 \bottomrule
 \end{tabular}
 \end{table}
