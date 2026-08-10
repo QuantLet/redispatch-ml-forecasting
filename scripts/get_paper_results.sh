@@ -7,5 +7,5 @@ python3 -m paper_results_cli \
     --dataset-name basic_day_ahead_price_wind_pv_production_consumption_sce \
     --interpretability-model-filter nhits \
     --best-checkpoint \
-    --ablation \
+    --all \
     --models "lstm" "lightgbm_regression_rolling" "nhits" "nbeatsx" "tft"

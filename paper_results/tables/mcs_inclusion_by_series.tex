@@ -1,10 +1,12 @@
 \begin{table}
-\caption{MCS inclusion by target series ($\alpha=0.25$, 5{,}000 stationary bootstrap replications); an \textbf{X} denotes inclusion.}
+\caption{MCS inclusion by target series ($\alpha=0.25$); an \textbf{X} denotes inclusion.}
 \begin{tabular}{lrrrrrrrr}
 \toprule
 TSO & \multicolumn{2}{r}{50Hertz} & \multicolumn{2}{r}{Amprion} & \multicolumn{2}{r}{TenneT_DE} & \multicolumn{2}{r}{TransnetBW} \\
 Model & down & up & down & up & down & up & down & up \\
 \midrule
+LightGBM &  & \textbf{X} &  &  &  &  &  &  \\
+LSTM &  &  &  &  &  &  &  &  \\
 NBEATSx & \textbf{X} &  & \textbf{X} & \textbf{X} & \textbf{X} &  & \textbf{X} & \textbf{X} \\
 NHiTS &  & \textbf{X} & \textbf{X} & \textbf{X} &  &  &  & \textbf{X} \\
 TFT &  & \textbf{X} &  & \textbf{X} &  & \textbf{X} &  &  \\

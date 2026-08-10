@@ -2,24 +2,24 @@
   "artifacts": {
     "ablations": {
       "filename": "paper_ablations.tar.gz",
-      "sha256": "REPLACE_WITH_SHA256",
+      "sha256": "2102b0392f8e501a666cd95fce68bfc524c77e8645cedaba79f8734a407905fa",
       "top_level_paths": [
         "benchmark_ablation_paper",
         "input_size_ablation_paper"
       ],
-      "url": "REPLACE_WITH_ZENODO_DIRECT_URL"
+      "url": "https://zenodo.org/records/21867081/files/paper_ablations.tar.gz?download=1"
     },
     "interpretability": {
       "filename": "paper_interpretability.tar.gz",
-      "sha256": "REPLACE_WITH_SHA256",
+      "sha256": "2700d17177a1f4da93471540344bc1af933bf6f3386eacfe710f19cd68f660df",
       "top_level_paths": [
         "outputs_paper"
       ],
-      "url": "REPLACE_WITH_ZENODO_DIRECT_URL"
+      "url": "https://zenodo.org/records/21867081/files/paper_interpretability.tar.gz?download=1"
     },
     "predictions": {
       "filename": "paper_predictions.tar.gz",
-      "sha256": "REPLACE_WITH_SHA256",
+      "sha256": "e1deb0ade82c6c689f7d1788b736f9e5404ac8da162395fee6f53f905718ccb3",
       "top_level_paths": [
         "outputs_nhits_only_seed860_paper",
         "outputs_no_covariates",
@@ -28,7 +28,7 @@
         "outputs_shifted_targets_17_paper",
         "outputs_shifted_targets_17_seed860_paper"
       ],
-      "url": "REPLACE_WITH_ZENODO_DIRECT_URL"
+      "url": "https://zenodo.org/records/21867081/files/paper_predictions.tar.gz?download=1"
     }
   },
   "doi": "REPLACE_WITH_VERSION_SPECIFIC_ZENODO_DOI",

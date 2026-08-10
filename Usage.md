@@ -100,7 +100,8 @@ externally because they are too large for the Git repository:
 Download, verify, and restore all external artifacts with:
 
 ```bash
-python scripts/download_paper_artifacts.py --all
+cd scripts
+python download_paper_artifacts.py --all
 ```
 
 For a selective restore, use any combination of `--predictions`,
@@ -130,7 +131,24 @@ redispatch-ml-forecasting/
 Regenerate into `paper_results/`:
 
 ```bash
-python -m paper_results_cli --all
+python3 -m paper_results_cli \
+    --predictions-dir outputs_paper \
+    --shift-dir outputs_shifted_targets_17_paper \
+    --interpretability-ig-root outputs_paper \
+    --interpretability-dataset-root data/model_data_paper_actuals_1h_lag \
+    --dataset-root-dir-path data/model_data_paper_actuals_1h_lag \
+    --dataset-name basic_day_ahead_price_wind_pv_production_consumption_sce \
+    --interpretability-model-filter nhits \
+    --best-checkpoint \
+    --all \
+    --models "lstm" "lightgbm_regression_rolling" "nhits" "nbeatsx" "tft"
+
+```
+
+or 
+
+```bash
+source scripts/get_paper_results.sh
 ```
 
 Or run individual result modules:
@@ -142,12 +160,6 @@ python -m paper_results_cli --fbeta              # F-beta bootstrap dominance
 python -m paper_results_cli --mcs                # Model Confidence Set tables/heatmap
 python -m paper_results_cli --ablation           # circular-shift DM dominance
 python -m paper_results_cli --interpretability   # IG feature-group importance
-```
-
-Use the **best-validation checkpoints** (as reported in the paper) and write PDF figures:
-
-```bash
-python -m paper_results_cli --all --best-checkpoint --figure-format pdf --output-dir paper_results/final
 ```
 
 The prediction-window figure is produced by:
