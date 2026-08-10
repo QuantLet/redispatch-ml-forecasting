@@ -5,6 +5,9 @@ Outputs
 tables/global_feature_group_importance.csv
 tables/global_feature_group_importance.tex
 tables/horizon_group_attribution_shares.csv
+tables/top_feature_attribution_shares.csv
+tables/global_top_feature_importance.tex
+tables/horizon_top_feature_importance.tex
 figures/horizon_group_attribution_heatmap.{png,pdf}
 """
 from __future__ import annotations
@@ -29,6 +32,7 @@ from training.explainability import (
 
 from ..config import PaperConfig
 from ..style import save_figure
+from ..tables import add_index_names, escape_latex, save_latex_table
 
 logger = logging.getLogger(__name__)
 
@@ -177,11 +181,42 @@ def _group_share_tensor(
     )
 
 
+
+
+def _feature_share_tensor(
+    arr: np.ndarray,
+    feature_names: list[str],
+    exclude_groups: tuple[str, ...],
+) -> tuple[np.ndarray, list[str]]:
+    """Return per-sample relative feature reliance with shape [sample, B, H, F]."""
+    keep_indices = [
+        i for i, feature_name in enumerate(feature_names)
+        if _group_feature(feature_name) not in exclude_groups
+    ]
+    kept_features = [feature_names[i] for i in keep_indices]
+    abs_arr = np.abs(arr[..., keep_indices])
+    denominator = abs_arr.sum(axis=-1, keepdims=True)
+    shares = np.divide(
+        abs_arr,
+        denominator,
+        out=np.zeros_like(abs_arr),
+        where=denominator > 0,
+    )
+    return shares, kept_features
+
+
+def _feature_display_name(feature: str) -> str:
+    for prefix in ("hist_exog_", "futr_exog_", "stat_exog_"):
+        if feature.startswith(prefix):
+            return feature[len(prefix):]
+    return feature
+
+
 def _load_tso_direction_shares(
     inputs: InterpretabilityInputs,
     tso_key: str,
     input_size: int,
-) -> tuple[pd.DataFrame, list[str]]:
+) -> tuple[pd.DataFrame, pd.DataFrame, list[str]]:
     metadata = _load_metadata(inputs.dataset_root, inputs.dataset_name, tso_key)
     model_stub = _infer_hparams(metadata, input_size=input_size)
     static_df = pd.DataFrame({
@@ -219,13 +254,18 @@ def _load_tso_direction_shares(
     stacked = np.stack(per_stride, axis=0)
     groups = _available_groups(feature_names, inputs.exclude_groups)
     shares = _group_share_tensor(stacked, feature_names, groups, inputs.exclude_groups)
+    feature_shares, kept_features = _feature_share_tensor(
+        stacked,
+        feature_names,
+        inputs.exclude_groups,
+    )
 
-    rows: list[dict] = []
+    group_rows: list[dict] = []
     for b_idx, direction in enumerate(["up", "down"][: shares.shape[1]]):
         for h_idx in range(shares.shape[2]):
             horizon = h_idx + 1
             for g_idx, group in enumerate(groups):
-                rows.append({
+                group_rows.append({
                     "tso": TSO_DISPLAY[tso_key],
                     "direction": direction,
                     "horizon": horizon,
@@ -234,7 +274,23 @@ def _load_tso_direction_shares(
                     "n_predictions": int(shares.shape[0]),
                 })
 
-    return pd.DataFrame(rows), groups
+    feature_rows: list[dict] = []
+    for b_idx, direction in enumerate(["up", "down"][: feature_shares.shape[1]]):
+        for h_idx in range(feature_shares.shape[2]):
+            horizon = h_idx + 1
+            for f_idx, feature in enumerate(kept_features):
+                feature_rows.append({
+                    "tso": TSO_DISPLAY[tso_key],
+                    "direction": direction,
+                    "horizon": horizon,
+                    "feature": _feature_display_name(feature),
+                    "raw_feature": feature,
+                    "group": _group_feature(feature),
+                    "share": float(feature_shares[:, b_idx, h_idx, f_idx].mean()),
+                    "n_predictions": int(feature_shares.shape[0]),
+                })
+
+    return pd.DataFrame(group_rows), pd.DataFrame(feature_rows), groups
 
 
 def build_horizon_group_shares(
@@ -259,8 +315,70 @@ def build_horizon_group_shares(
     )
 
 
+def build_top_feature_shares(
+    inputs: InterpretabilityInputs,
+    *,
+    tso_keys: list[str] | None = None,
+    input_size: int = 24,
+    top_n: int = 5,
+) -> pd.DataFrame:
+    """Return the top-N feature attribution shares overall and by horizon block."""
+    tso_keys = tso_keys or list(TSO_SUFFIXES)
+    frames = [
+        _load_tso_direction_shares(inputs, tso_key=tso_key, input_size=input_size)[1]
+        for tso_key in tso_keys
+    ]
+    feature_shares = pd.concat(frames, ignore_index=True)
+    feature_shares["horizon_block"] = pd.cut(
+        feature_shares["horizon"],
+        bins=[0, 9, 17, 24],
+        labels=["early", "middle", "late"],
+    ).astype(str)
+
+    block = (
+        feature_shares
+        .groupby(["tso", "direction", "horizon_block", "feature", "raw_feature", "group"], as_index=False)
+        .agg(share=("share", "mean"), n_predictions=("n_predictions", "sum"))
+    )
+    overall = (
+        feature_shares
+        .groupby(["tso", "direction", "feature", "raw_feature", "group"], as_index=False)
+        .agg(share=("share", "mean"), n_predictions=("n_predictions", "sum"))
+        .assign(horizon_block="overall")
+    )
+    ranked = pd.concat([overall, block], ignore_index=True)
+    block_order = ["overall", *HORIZON_BLOCKS]
+    ranked["horizon_block"] = pd.Categorical(
+        ranked["horizon_block"],
+        categories=block_order,
+        ordered=True,
+    )
+    ranked = ranked.sort_values(
+        ["tso", "direction", "horizon_block", "share", "feature"],
+        ascending=[True, True, True, False, True],
+    )
+    ranked["horizon_block"] = ranked["horizon_block"].astype(str)
+    ranked["rank"] = ranked.groupby(["tso", "direction", "horizon_block"]).cumcount() + 1
+    columns = [
+        "tso",
+        "direction",
+        "horizon_block",
+        "rank",
+        "feature",
+        "raw_feature",
+        "group",
+        "share",
+        "n_predictions",
+    ]
+    return ranked.loc[ranked["rank"] <= top_n, columns].reset_index(drop=True)
+
+
 def _format_group_share(row: pd.Series) -> str:
     return f"{row['group']} ({row['share'] * 100:.0f}%)"
+
+
+def _format_feature_share(row: pd.Series) -> str:
+    return f"{escape_latex(str(row['feature']))} ({row['share'] * 100:.1f}\\%)"
 
 
 def _interpretation(top_groups: list[str]) -> str:
@@ -293,6 +411,45 @@ def build_global_importance_table(block_shares: pd.DataFrame) -> pd.DataFrame:
             "interpretation": _interpretation(group_names),
         })
     return pd.DataFrame(rows)
+
+
+def build_global_top_feature_table(top_feature_shares: pd.DataFrame) -> pd.DataFrame:
+    overall = top_feature_shares[top_feature_shares["horizon_block"] == "overall"].copy()
+    rows: list[dict] = []
+    for (tso, direction), sub in overall.groupby(["tso", "direction"], sort=False):
+        top = sub.sort_values("rank").head(2).reset_index(drop=True)
+        rows.append({
+            "TSO": escape_latex(str(tso)),
+            "Direction": direction,
+            "First feature": _format_feature_share(top.iloc[0]) if len(top) > 0 else "",
+            "Second feature": _format_feature_share(top.iloc[1]) if len(top) > 1 else "",
+        })
+    if not rows:
+        return pd.DataFrame()
+    return pd.DataFrame(rows).set_index(["TSO", "Direction"])
+
+
+def build_horizon_top_feature_table(top_feature_shares: pd.DataFrame) -> pd.DataFrame:
+    top1 = top_feature_shares[
+        (top_feature_shares["horizon_block"].isin(HORIZON_BLOCKS))
+        & (top_feature_shares["rank"] == 1)
+    ].copy()
+    if top1.empty:
+        return pd.DataFrame()
+    top1["cell"] = top1.apply(_format_feature_share, axis=1)
+    top1["tso"] = top1["tso"].map(lambda value: escape_latex(str(value)))
+    table = (
+        top1
+        .pivot(index=["tso", "direction"], columns="horizon_block", values="cell")
+        .reindex(columns=list(HORIZON_BLOCKS))
+        .rename_axis(index=["TSO", "Direction"], columns=None)
+        .rename(columns={
+            "early": "Early horizons",
+            "middle": "Middle horizons",
+            "late": "Late horizons",
+        })
+    )
+    return table
 
 
 def plot_horizon_group_heatmap(block_shares: pd.DataFrame) -> plt.Figure:
@@ -351,6 +508,35 @@ def _save_global_table(table: pd.DataFrame, config: PaperConfig) -> None:
     logger.info("Saved %s", tex_path)
 
 
+def _save_top_feature_outputs(top_feature_shares: pd.DataFrame, config: PaperConfig) -> None:
+    csv_path = config.tables_dir / "top_feature_attribution_shares.csv"
+    top_feature_shares.to_csv(csv_path, index=False)
+    logger.info("Saved %s", csv_path)
+
+    global_table = build_global_top_feature_table(top_feature_shares)
+    if not global_table.empty:
+        save_latex_table(
+            global_table,
+            config.tables_dir / "global_top_feature_importance.tex",
+            caption="Top Integrated-Gradients feature attribution shares by TSO and direction.",
+            column_format="llll",
+            final_form_callback=add_index_names,
+        )
+        logger.info("Saved %s", config.tables_dir / "global_top_feature_importance.tex")
+
+    horizon_table = build_horizon_top_feature_table(top_feature_shares)
+    if not horizon_table.empty:
+        save_latex_table(
+            horizon_table,
+            config.tables_dir / "horizon_top_feature_importance.tex",
+            caption="Top Integrated-Gradients feature attribution share by horizon block.",
+            column_format="lllll",
+            final_form_callback=add_index_names,
+        )
+        logger.info("Saved %s", config.tables_dir / "horizon_top_feature_importance.tex")
+
+
+
 def run(
     config: PaperConfig,
     *,
@@ -359,6 +545,7 @@ def run(
     dataset_name: str | None = None,
     model_filter: str = "nhits",
     start_window: int = 2,
+    top_n_features: int = 5,
     exclude_groups: tuple[str, ...] = ("static_covariates", "bloomberg"),
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Generate Table 1 and the horizon-block attribution heatmap."""
@@ -384,6 +571,14 @@ def run(
 
     global_table = build_global_importance_table(block_shares)
     _save_global_table(global_table, config)
+
+    top_feature_shares = build_top_feature_shares(
+        inputs,
+        tso_keys=list(TSO_SUFFIXES),
+        input_size=24,
+        top_n=top_n_features,
+    )
+    _save_top_feature_outputs(top_feature_shares, config)
 
     fig = plot_horizon_group_heatmap(block_shares)
     save_figure(fig, config.figures_dir / "horizon_group_attribution_heatmap", config.figure_format)

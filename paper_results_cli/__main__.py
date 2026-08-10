@@ -236,6 +236,12 @@ def _build_parser() -> argparse.ArgumentParser:
         help="First rolling window to include in interpretability outputs "
              "(default: %(default)s).",
     )
+    stat.add_argument(
+        "--interpretability-top-n-features", type=int, default=5,
+        metavar="N",
+        help="Number of ranked feature-level IG attributions to keep per TSO, "
+             "direction, and horizon block (default: %(default)s).",
+    )
 
     # ── Checkpoint selection ────────────────────────────────────────────────
     ckpt = p.add_argument_group("checkpoint selection")
@@ -358,6 +364,7 @@ def _run_interpretability(config: PaperConfig, args: argparse.Namespace) -> None
         dataset_name=args.interpretability_dataset_name,
         model_filter=args.interpretability_model_filter,
         start_window=args.interpretability_start_window,
+        top_n_features=args.interpretability_top_n_features,
     )
     logger.info("[interpretability] Done.")
 

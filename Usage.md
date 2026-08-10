@@ -216,6 +216,7 @@ python -m paper_results_cli [MODULE FLAGS] [OPTIONS]
 | `--dm-sparsity-threshold` | `0.7` | sparsity split for DM dominance |
 | `--dm-alpha` | `0.05` | DM test significance level |
 | `--interpretability-start-window` | `2` | first rolling window for IG |
+| `--interpretability-top-n-features` | `5` | ranked feature-level IG attributions to keep per TSO/direction/block |
 | `--best-checkpoint` | off | use best-validation-checkpoint predictions |
 | `--figure-format` | `png` | `png` or `pdf` |
 | `--start-date` | dataset default | evaluation start date |
@@ -231,16 +232,6 @@ Custom stress-regime JSON (`--regimes-file`):
   "pv_distribution": ["2025-04-01", "2025-06-30"]
 }
 ```
-
----
-
-## Non-code exhibits
-
-The following are authored directly in the manuscript and have **no generating command** (they cite their sources or the model/config specification):
-
-- Redispatch illustration & German TSO map (Fig. 1) — external sources, cited in-caption.
-- Information-set / reindexing schematic (Fig. 3) — TikZ diagram in the LaTeX source.
-- Exogenous-covariate table, benchmark-model-family table, regime-split definitions, per-model parameter grid, chosen-parameter tables — specification tables maintained manually / from `training/` config and `config.py` (`DEFAULT_REGIMES`).
 
 ---
 
