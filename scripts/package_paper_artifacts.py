@@ -11,10 +11,11 @@ from pathlib import Path
 import tarfile
 import tempfile
 
-GROUPS = ("predictions", "interpretability", "ablations")
+GROUPS = ("predictions", "interpretability", "ablations", "model_data")
 TSOS = ("50hertz", "amprion", "tennet_de", "transnetbw")
 WINDOWS = tuple(range(2, 14))
 DATASET = "basic_day_ahead_price_wind_pv_production_consumption_sce"
+MODEL_DATA_DIR = Path("data/model_data_paper_actuals_1h_lag")
 TSO_DISPLAY = {
     "50hertz": "50Hertz",
     "amprion": "Amprion",
@@ -124,10 +125,21 @@ def ablation_files(root: Path) -> list[Path]:
     return files
 
 
+def model_data_files(root: Path) -> list[Path]:
+    model_data_dir = root / MODEL_DATA_DIR
+    if not model_data_dir.is_dir():
+        raise FileNotFoundError(f"Required paper model-data directory is missing: {model_data_dir}")
+    files = sorted(path for path in model_data_dir.rglob("*") if path.is_file())
+    if not files:
+        raise FileNotFoundError(f"No paper model-data files found in {model_data_dir}")
+    return files
+
+
 SELECTORS = {
     "predictions": prediction_files,
     "interpretability": interpretability_files,
     "ablations": ablation_files,
+    "model_data": model_data_files,
 }
 
 

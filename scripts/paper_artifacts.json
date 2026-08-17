@@ -7,7 +7,7 @@
         "benchmark_ablation_paper",
         "input_size_ablation_paper"
       ],
-      "url": "https://zenodo.org/records/21867081/files/paper_ablations.tar.gz?download=1"
+      "url": "https://zenodo.org/records/21978450/files/paper_ablations.tar.gz?download=1"
     },
     "interpretability": {
       "filename": "paper_interpretability.tar.gz",
@@ -15,7 +15,15 @@
       "top_level_paths": [
         "outputs_paper"
       ],
-      "url": "https://zenodo.org/records/21867081/files/paper_interpretability.tar.gz?download=1"
+      "url": "https://zenodo.org/records/21978450/files/paper_interpretability.tar.gz?download=1"
+    },
+    "model_data": {
+      "filename": "paper_model_data.tar.gz",
+      "sha256": "fa644d4dfd449cae46732c2b60a0c5bc9d77aef701683c24241ce9a3526e354e",
+      "top_level_paths": [
+        "data"
+      ],
+      "url": "https://zenodo.org/records/21978450/files/paper_model_data.tar.gz?download=1"
     },
     "predictions": {
       "filename": "paper_predictions.tar.gz",
@@ -28,9 +36,9 @@
         "outputs_shifted_targets_17_paper",
         "outputs_shifted_targets_17_seed860_paper"
       ],
-      "url": "https://zenodo.org/records/21867081/files/paper_predictions.tar.gz?download=1"
+      "url": "https://zenodo.org/records/21978450/files/paper_predictions.tar.gz?download=1"
     }
   },
-  "doi": "REPLACE_WITH_VERSION_SPECIFIC_ZENODO_DOI",
+  "doi": "https://doi.org/10.5281/zenodo.21978450",
   "schema_version": 1
 }
